@@ -1546,6 +1546,11 @@ caniuse-lite@^1.0.30001754:
   resolved "https://registry.npmmirror.com/caniuse-lite/-/caniuse-lite-1.0.30001757.tgz#a46ff91449c69522a462996c6aac4ef95d7ccc5e"
   integrity sha512-r0nnL/I28Zi/yjk1el6ilj27tKcdjLsNqAOZr0yVjWPrSQyHgKI2INaEWw21bAQSv2LXRt1XuCS/GomNpWOxsQ==
 
+canvas-mark-board@^0.0.1-beta.11:
+  version "0.0.1-beta.11"
+  resolved "https://registry.npmmirror.com/canvas-mark-board/-/canvas-mark-board-0.0.1-beta.11.tgz#4558185e4dac162088b62310fdf2d5f17a31081d"
+  integrity sha512-9uzsusT8y0GQkThgm1NssIct/sjRrbvi/l0EAEvuyomqnNy12FPWTeb2gop8Jl9PwHAyjm5wLaEhkmv/4bC6Fg==
+
 chalk@^4.0.0:
   version "4.1.2"
   resolved "https://registry.npmmirror.com/chalk/-/chalk-4.1.2.tgz#aac4e2b7734a740867aeb16bf02aad556a1e7a01"

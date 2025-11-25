@@ -13,14 +13,27 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElDialog: typeof import('element-plus/es')['ElDialog']
+    ElIcon: typeof import('element-plus/es')['ElIcon']
+    ElInput: typeof import('element-plus/es')['ElInput']
+    ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
+    ElSlider: typeof import('element-plus/es')['ElSlider']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+  }
+  export interface GlobalDirectives {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }
 
 // For TSX support
 declare global {
   const ElButton: typeof import('element-plus/es')['ElButton']
+  const ElDialog: typeof import('element-plus/es')['ElDialog']
+  const ElIcon: typeof import('element-plus/es')['ElIcon']
+  const ElInput: typeof import('element-plus/es')['ElInput']
+  const ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
+  const ElSlider: typeof import('element-plus/es')['ElSlider']
   const RouterLink: typeof import('vue-router')['RouterLink']
   const RouterView: typeof import('vue-router')['RouterView']
 }
