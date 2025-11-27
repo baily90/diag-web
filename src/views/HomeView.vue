@@ -1,14 +1,16 @@
 <template>
-  <div class="flex w-100% h-500px bg-gray" v-loading="loading">
-    <video ref="videoRef" class="w-full h-full" :src="url" @loadedmetadata="onLoadedMetadata" @timeupdate="onTimeupdate"
+  <div class="pos-relative inline-flex bg-gray" v-loading="loading">
+    <video ref="videoRef" :src="url" @loadedmetadata="onLoadedMetadata" @timeupdate="onTimeupdate"
       @play="isPlaying = true" @pause="isPlaying = false" @ended="isEnded = true" controls />
+    <img v-if="screenshot && !isDragging" class="pos-absolute pos-top-0 pos-left-0 w-full h-full" :src="screenshot"
+      alt=""></img>
   </div>
   <div>
     <el-button @click="onToggleHandle">{{ isEnded ? '重新播放' : isPlaying ? '暂停' : '播放' }}</el-button>
     <el-button @click="onScreenShotHandle">抽帧</el-button>
     <el-button :disabled="isPlaying" @click="onMeasureHandle">测量</el-button>
     <div class="w-full px-20px">
-      <el-slider v-model="currentTime" :max="duration" @input="onSlideChange" />
+      <el-slider v-model="currentFrame" :max="totalFrames" :marks="marks" @input="onSlideChange" />
     </div>
   </div>
   <div>
@@ -16,7 +18,8 @@
     <div>当前时间：{{ currentTime }}ms</div>
     <div>是否正在播放：{{ isPlaying }}</div>
     <div>是否播放结束：{{ isEnded }}</div>
-    <div>当前帧：{{ Math.floor(totalFrames * currentTime / duration) }}</div>
+    <div>是否正在拖拽： {{ isDragging }}</div>
+    <div>当前帧：{{ currentFrame }}</div>
     <div>总帧数：<el-input-number v-model="totalFrames" /></div>
   </div>
   <img :src="screenshot" alt=""></img>
@@ -40,6 +43,17 @@ const duration = ref(0)
 const currentTime = ref(0)
 const screenshot = ref(null)
 const totalFrames = ref(280)
+const currentFrame = ref(0)
+
+const marks = reactive({
+  61: '责任病灶',
+  120: '',
+  121: '',
+  122: '',
+  123: '',
+  124: '',
+  125: '',
+})
 
 const measureDialogRef = ref(null)
 
@@ -47,8 +61,20 @@ const onLoadedMetadata = (e) => {
   duration.value = e.target.duration * 1000
 }
 
+const draggingTimer = ref(0)
+const isDragging = ref(false)
 const onTimeupdate = (e) => {
+  isDragging.value = true
+  if (draggingTimer.value) {
+    clearTimeout(draggingTimer.value)
+  }
+  draggingTimer.value = setTimeout(() => {
+    isDragging.value = false
+    onScreenShotHandle()
+  }, 1000)
   currentTime.value = e.target.currentTime * 1000
+
+  currentFrame.value = Math.round(totalFrames.value * currentTime.value / duration.value)
 }
 
 const onToggleHandle = () => {
@@ -73,8 +99,9 @@ const onMeasureHandle = () => {
 }
 
 
-const onSlideChange = (val) => {
-  videoRef.value.currentTime = val / 1000
+
+const onSlideChange = (val: number) => {
+  videoRef.value.currentTime = val * duration.value / totalFrames.value / 1000
 }
 
 
@@ -90,7 +117,7 @@ const onScreenShotHandle = () => {
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = "https://sit-scan-private.weicha88.com/scan_doctor_app/video/20240705/202407051804031m8ePS.mp4?security-token=CAISyAJ1q6Ft5B2yfSjIr5nlJsjCv5cUj6afdxLSjlAsZ%2Bxiur3Njzz2IHlOf3BqBeEfsPw0lGlY5%2F8ZlrxpTJtIckDFZMR26Y9W6jStZIHdvNbtex6pOl7%2BSwapEBfe8JL4QYeQFaHwGJqEb1TDiVUAo9%2FTfimjWFqIKICAjYUdAP0cQgi%2Fa0gtZr4UXHwAzvUXLnzML%2F2gHwf3i27LdipStxF7lHl05NbUoKTeyGKH0gyrkr9K%2B9mgeMj6NJgxBvolDYfpht4RX7HazStd5yJN8KpLl6Fe8V%2FFxIrEWQIIuUnXarSMqY02fF4gPbJVALJf6fTxi%2B3rKEs4BUUdoPwkH5a2M0y3LOjIqKNPiHw3uzOE25xPmmUff6FuJxiEUvIeGwY%2FHilkhVSvhPE%2BZxKCxP9U1FHZFr6oBiXnf8yvtMeSuTML0Ku2lbLiGoABXbpetCbnN2SHuvdbcU3XtXln42N44E7%2B278MwZXH00w9Dli%2FJCHFiw8hZeXCDzSMF1tPPE68hq5MmDMPPjwONuE2wg30%2BErCtB%2BYgSE%2BQFaPETfJpGKnu7RZ%2B2nnPJmHFGT7nWjUwuotiU%2FzzdZPfsr3J3EvotfneIBEtWiaR2IgAA%3D%3D&OSSAccessKeyId=STS.NZPmrvRH58dtu4cjPykcNUxfm&Expires=1764077474&Signature=1301sXNEPz9RNo3uyjc3a%2Fo0crU%3D"
+    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251127%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251127T164220Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=8bb0b89dcd57f97fb64947a740fb56b91b6604c2b16e5af77b35a4569266df59'
 
 
     const response = await fetch(testurl);
@@ -108,3 +135,12 @@ onMounted(() => {
   loadVideo()
 })
 </script>
+<style scoped lang="less">
+:deep(.el-slider__stop) {
+  background-color: red;
+}
+
+video {
+  object-fit: fit;
+}
+</style>
