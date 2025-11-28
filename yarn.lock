@@ -1551,6 +1551,11 @@ canvas-mark-board@^0.0.1-beta.11:
   resolved "https://registry.npmmirror.com/canvas-mark-board/-/canvas-mark-board-0.0.1-beta.11.tgz#4558185e4dac162088b62310fdf2d5f17a31081d"
   integrity sha512-9uzsusT8y0GQkThgm1NssIct/sjRrbvi/l0EAEvuyomqnNy12FPWTeb2gop8Jl9PwHAyjm5wLaEhkmv/4bC6Fg==
 
+canvas-select@^2.32.3:
+  version "2.32.3"
+  resolved "https://registry.npmmirror.com/canvas-select/-/canvas-select-2.32.3.tgz#023f092013ed13bbf5f51474baa375e3cfaa2ee9"
+  integrity sha512-9/ZTxDI03cAnAnsm3V2kpsZ+5g+Mf6IFpCmRl4U/wRAte2aqgksNKMB9BSpbyrAHIbIkXanEuD0tb6zN7LJabw==
+
 chalk@^4.0.0:
   version "4.1.2"
   resolved "https://registry.npmmirror.com/chalk/-/chalk-4.1.2.tgz#aac4e2b7734a740867aeb16bf02aad556a1e7a01"

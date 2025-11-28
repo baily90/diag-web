@@ -22,6 +22,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "canvas-mark-board": "^0.0.1-beta.11",
+    "canvas-select": "^2.32.3",
     "element-plus": "^2.11.8",
     "pinia": "^3.0.3",
     "pinia-plugin-persist": "^1.0.0",
