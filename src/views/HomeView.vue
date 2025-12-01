@@ -1,10 +1,9 @@
 <template>
-  <div class="pos-relative inline-flex bg-gray" v-loading="loading">
-    <video ref="videoRef" :src="url" @loadedmetadata="onLoadedMetadata" @loadeddata="onLoadeddata"
-      @timeupdate="onTimeupdate" @play="isPlaying = true" @pause="isPlaying = false" @ended="isEnded = true" controls />
-    <!-- <img v-if="screenshot && !isDragging" class="pos-absolute pos-top-0 pos-left-0 w-full h-full" :src="screenshot"
-      alt=""></img> -->
-    <canvas v-show="!isDragging" id="container" class="pos-absolute pos-top-0 pos-left-0 w-full h-full"></canvas>
+  <div class="pos-relative w-100% h-600px bg-gray" v-loading="loading">
+    <video ref="videoRef" crossorigin="anonymous" class="w-100% h-100% object-contain" :src="url"
+      @loadedmetadata="onLoadedMetadata" @loadeddata="onLoadeddata" @timeupdate="onTimeupdate" @play="isPlaying = true"
+      @pause="isPlaying = false" @ended="isEnded = true" :controls="false" />
+    <canvas v-show="!isDragging" id="container"></canvas>
   </div>
   <div>
     <el-button @click="onToggleHandle">{{ isEnded ? '重新播放' : isPlaying ? '暂停' : '播放' }}</el-button>
@@ -34,7 +33,6 @@ import CanvasSelect from 'canvas-select'
 import MeasureDialog from './components/MeasureDialog/index.vue'
 
 
-
 const loading = ref(true)
 const url = ref(null)
 const videoRef = ref<HTMLVideoElement>(null)
@@ -60,6 +58,9 @@ const marks = reactive({
 const measureDialogRef = ref(null)
 const instance = ref(null)
 
+const width = ref(0)
+const height = ref(0)
+
 const onLoadedMetadata = (e) => {
   console.log('onLoadedMetadata');
   duration.value = e.target.duration * 1000
@@ -67,6 +68,7 @@ const onLoadedMetadata = (e) => {
 const onLoadeddata = () => {
   console.log('onLoadeddata');
   if (!instance.value) instance.value = new CanvasSelect('#container')
+  videoDimensions(videoRef.value)
 }
 
 
@@ -75,6 +77,15 @@ const isDragging = ref(false)
 const onTimeupdate = (e) => {
   currentTime.value = e.target.currentTime * 1000
   currentFrame.value = Math.round(totalFrames.value * currentTime.value / duration.value)
+}
+
+const videoDimensions = (video) => {
+  const videoRatio = video.videoWidth / video.videoHeight;
+  width.value = video.offsetWidth
+  height.value = video.offsetHeight;
+  const elementRatio = width.value / height.value;
+  if (elementRatio > videoRatio) width.value = height.value * videoRatio;
+  else height.value = width.value / videoRatio;
 }
 
 const onToggleHandle = () => {
@@ -122,42 +133,52 @@ const fillStyleArray = [
   'rgba(255, 0, 255, 0.1)'
 ]
 const mock = [
-  {
-    "label": "病灶1",
-    "coor": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
-    "type": 2,
-    // "fillStyle": "rgba(0, 0, 255, 0.1)",
-    // "strokeStyle": "#f00"
-  },
+  // {
+  //   "label": "病灶1",
+  //   "coor": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
+  //   "type": 2,
+  //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
+  //   // "strokeStyle": "#f00"
+  // },
   {
     "label": "病灶2",
-    "coor": [[50, 284], [117, 284], [117, 317], [50, 317]],
+    "coor": [[1, 1], [495, 240], [495, 480], [50, 317]],
     "type": 2,
     // "fillStyle": "rgba(0, 0, 255, 0.1)",
     // "strokeStyle": "#f00"
   },
-  {
-    "label": "病灶3",
-    "coor": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
-    "type": 2,
-    // "fillStyle": "rgba(0, 0, 255, 0.1)",
-    // "strokeStyle": "#f00"
-  }
+  // {
+  //   "label": "病灶3",
+  //   "coor": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
+  //   "type": 2,
+  //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
+  //   // "strokeStyle": "#f00"
+  // }
 ]
 
 const onRenderFrame = () => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = videoRef.value.videoWidth;
-  canvas.height = videoRef.value.videoHeight;
+  canvas.width = width.value;
+  canvas.height = height.value;
+  console.log(videoRef.value.videoWidth, videoRef.value.videoHeight);
+
+  // canvas.width = videoRef.value.videoWidth;
+  // canvas.height = videoRef.value.videoHeight;
   ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
   const img = canvas.toDataURL('image/png')
-  const contour = mock.map((item, index) => ({ ...item, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }))
+  const contour = mock.map((item, index) => {
+    const coor = item.coor.map(([x, y]) => {
+      return [x * (width.value / videoRef.value.videoWidth), y * (height.value / videoRef.value.videoHeight)]
+    })
+    return { ...{ ...item, coor }, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
+  })
 
   instance.value?.setImage(img)
   instance.value?.setData(contour)
-  instance.value.hideLabel = true
+  instance.value.hideLabel = false
   instance.value.lock = true
+
 }
 
 
@@ -173,12 +194,14 @@ const onScreenShotHandle = () => {
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251128%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251128T111622Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=64645287199f5d00a07cb0a398d9372a09a5ba36a11ec420a0104c44d139979a'
+    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251201%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251201T081724Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=8e253b8cc63cc1cc33bff151f676f6e777f4b184f9a94b74bdac71ef4100db43'
 
-    const response = await fetch(testurl);
-    const blob = await response.blob();
+    // const response = await fetch(testurl);
+    // const blob = await response.blob();
 
-    url.value = URL.createObjectURL(blob);
+    // url.value = URL.createObjectURL(blob);
+
+    url.value = testurl
   } catch (error) {
     console.log(error);
   } finally {
@@ -195,7 +218,11 @@ onMounted(() => {
   background-color: red;
 }
 
-video {
-  object-fit: fit;
+#container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 </style>
