@@ -1,9 +1,32 @@
 <template>
-  <div class="pos-relative w-100% h-600px bg-gray" v-loading="loading">
+  <div class="pos-relative w-100% h-400px bg-gray" v-loading="loading">
     <video ref="videoRef" crossorigin="anonymous" class="w-100% h-100% object-contain" :src="url"
       @loadedmetadata="onLoadedMetadata" @loadeddata="onLoadeddata" @timeupdate="onTimeupdate" @play="isPlaying = true"
       @pause="isPlaying = false" @ended="isEnded = true" :controls="false" />
     <canvas v-show="!isDragging" id="container"></canvas>
+    <el-dropdown class="!pos-absolute pos-left-[50%] pos-top-0 z-1 -transform-translate-x-[50%]" ref="dropdownRef"
+      trigger="contextmenu" :hide-on-click="false" effect="dark">
+      <el-button type="danger" link @click="openDropdown">
+        <el-icon size="24px">
+          <ArrowDownBold />
+        </el-icon>
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item>
+            <div class="text-yellow">高回声 2.4*1.8mm 30%(狭窄率)</div>
+          </el-dropdown-item>
+          <el-dropdown-item>
+            <div class="text-red">低回声 3.8*2.1mm 50%(狭窄率)</div>
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </div>
+  <div class="w-full px-20px">
+    <el-button @click="onZoomIn">放大</el-button>
+    <el-button @click="onZoomOut">缩小</el-button>
+    <el-button :icon="focusMode ? View : Hide" @click="onToggleFocusMode">病灶轮廓</el-button>
   </div>
   <div>
     <el-button @click="onToggleHandle">{{ isEnded ? '重新播放' : isPlaying ? '暂停' : '播放' }}</el-button>
@@ -31,12 +54,17 @@
 <script setup lang="ts">
 import CanvasSelect from 'canvas-select'
 import MeasureDialog from './components/MeasureDialog/index.vue'
+import { View, Hide } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 
 const loading = ref(true)
 const url = ref(null)
 const videoRef = ref<HTMLVideoElement>(null)
 
+
+const dropdownRef = ref(null)
+const focusMode = ref(false)
 const isPlaying = ref(false)
 const isEnded = ref(false)
 const duration = ref(0)
@@ -86,6 +114,9 @@ const videoDimensions = (video) => {
   const elementRatio = width.value / height.value;
   if (elementRatio > videoRatio) width.value = height.value * videoRatio;
   else height.value = width.value / videoRatio;
+  setTimeout(() => {
+    onRenderFrame()
+  }, 1000);
 }
 
 const onToggleHandle = () => {
@@ -99,6 +130,24 @@ const onToggleHandle = () => {
   }
 }
 
+const onToggleFocusMode = () => {
+  focusMode.value = !focusMode.value
+  if (focusMode.value) {
+    instance.value?.setFocusMode(true)
+  } else {
+    instance.value?.setFocusMode(false)
+  }
+}
+
+const openDropdown = () => {
+  ElMessage({
+    type: 'warning',
+    message: '未检测到病灶存在～',
+    duration: 800,
+  })
+  // dropdownRef.value?.handleOpen()
+}
+
 const onMeasureHandle = () => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -109,6 +158,13 @@ const onMeasureHandle = () => {
   measureDialogRef.value.open(img)
 }
 
+
+const onZoomIn = () => {
+  instance.value?.setScale(true)
+}
+const onZoomOut = () => {
+  instance.value?.setScale(false)
+}
 
 
 const onSlideInput = (val: number) => {
@@ -156,6 +212,12 @@ const mock = [
   // }
 ]
 
+const getCoor = () => mock.map((item, index) => {
+  const coor = item.coor.map(([x, y]) => {
+    return [x * (width.value / videoRef.value.videoWidth), y * (height.value / videoRef.value.videoHeight)]
+  })
+  return { ...{ ...item, coor }, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
+})
 const onRenderFrame = () => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -163,21 +225,19 @@ const onRenderFrame = () => {
   canvas.height = height.value;
   console.log(videoRef.value.videoWidth, videoRef.value.videoHeight);
 
-  // canvas.width = videoRef.value.videoWidth;
-  // canvas.height = videoRef.value.videoHeight;
   ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
   const img = canvas.toDataURL('image/png')
-  const contour = mock.map((item, index) => {
-    const coor = item.coor.map(([x, y]) => {
-      return [x * (width.value / videoRef.value.videoWidth), y * (height.value / videoRef.value.videoHeight)]
-    })
-    return { ...{ ...item, coor }, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
-  })
-
+  const contour = getCoor()
   instance.value?.setImage(img)
   instance.value?.setData(contour)
+  instance.value?.setFocusMode(focusMode.value)
+  instance.value.showCross = false
   instance.value.hideLabel = false
-  instance.value.lock = true
+  instance.value.readonly = true
+
+  if (contour.length) {
+    dropdownRef.value?.handleOpen()
+  }
 
 }
 
@@ -194,7 +254,7 @@ const onScreenShotHandle = () => {
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251201%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251201T081724Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=8e253b8cc63cc1cc33bff151f676f6e777f4b184f9a94b74bdac71ef4100db43'
+    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241007016oqMac.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251202%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251202T170009Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=e5190ca7d3698ffc11b2c9f3a72ce72dde0694695a1e15a1ea9337d3c9c923f3'
 
     // const response = await fetch(testurl);
     // const blob = await response.blob();
