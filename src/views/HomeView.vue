@@ -5,7 +5,7 @@
       @pause="isPlaying = false" @ended="isEnded = true" :controls="false" />
     <canvas v-show="!isDragging" id="container"></canvas>
     <el-dropdown class="!pos-absolute pos-left-[50%] pos-top-0 z-1 -transform-translate-x-[50%]" ref="dropdownRef"
-      trigger="contextmenu" :hide-on-click="false" effect="dark">
+      trigger="contextmenu" :hide-on-click="false">
       <el-button type="danger" link @click="openDropdown">
         <el-icon size="24px">
           <ArrowDownBold />
@@ -26,18 +26,20 @@
   <div class="w-full px-20px">
     <el-button @click="onZoomIn">放大</el-button>
     <el-button @click="onZoomOut">缩小</el-button>
+    <el-button @click="onScreenShotHandle">截图</el-button>
     <el-button :icon="focusMode ? View : Hide" @click="onToggleFocusMode">病灶轮廓</el-button>
+  </div>
+  <div class="flex items-center w-full px-20px gap-10px" v-if="screenShots?.length">
+    <img class="w-[100px] h-100px object-contain cursor-pointer" v-for="(item, index) in screenShots" :key="index"
+      :src="item.img" alt="" @click="onMeasureHandle(item)">
   </div>
   <div>
     <el-button @click="onToggleHandle">{{ isEnded ? '重新播放' : isPlaying ? '暂停' : '播放' }}</el-button>
-    <el-button @click="onScreenShotHandle">抽帧</el-button>
-    <el-button :disabled="isPlaying" @click="onMeasureHandle">测量</el-button>
-    <div class="w-full px-20px">
-      <el-slider v-model="currentFrame" :max="totalFrames" :marks="marks" @input="onSlideInput"
-        @change="onSlideChange" />
-    </div>
   </div>
-  <div>
+  <div class="w-full px-20px">
+    <el-slider v-model="currentFrame" :max="totalFrames" :marks="marks" @input="onSlideInput" @change="onSlideChange" />
+  </div>
+  <div class="w-full px-20px">
     <div>总时长：{{ duration }}ms</div>
     <div>当前时间：{{ currentTime }}ms</div>
     <div>是否正在播放：{{ isPlaying }}</div>
@@ -53,7 +55,7 @@
 
 <script setup lang="ts">
 import CanvasSelect from 'canvas-select'
-import MeasureDialog from './components/MeasureDialog/index.vue'
+import MeasureDialog from './components/MeasureDialog1/index.vue'
 import { View, Hide } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -104,7 +106,7 @@ const isDragging = ref(false)
 
 const onTimeupdate = (e) => {
   currentTime.value = e.target.currentTime * 1000
-  currentFrame.value = Math.round(totalFrames.value * currentTime.value / duration.value)
+  currentFrame.value = duration.value ? Math.round(totalFrames.value * currentTime.value / duration.value) : 0
 }
 
 const videoDimensions = (video) => {
@@ -140,21 +142,11 @@ const onToggleFocusMode = () => {
 }
 
 const openDropdown = () => {
-  ElMessage({
-    type: 'warning',
-    message: '未检测到病灶存在～',
-    duration: 800,
-  })
-  // dropdownRef.value?.handleOpen()
+
+  dropdownRef.value?.handleOpen()
 }
 
-const onMeasureHandle = () => {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = videoRef.value.videoWidth;
-  canvas.height = videoRef.value.videoHeight;
-  ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
-  const img = canvas.toDataURL('image/png')
+const onMeasureHandle = (img) => {
   measureDialogRef.value.open(img)
 }
 
@@ -191,21 +183,21 @@ const fillStyleArray = [
 const mock = [
   // {
   //   "label": "病灶1",
-  //   "coor": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
+  //   "edges": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
   //   "type": 2,
   //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
   //   // "strokeStyle": "#f00"
   // },
   {
     "label": "病灶2",
-    "coor": [[1, 1], [495, 240], [495, 480], [50, 317]],
+    "edges": [[1, 1], [495, 240], [495, 480], [50, 317]],
     "type": 2,
     // "fillStyle": "rgba(0, 0, 255, 0.1)",
     // "strokeStyle": "#f00"
   },
   // {
   //   "label": "病灶3",
-  //   "coor": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
+  //   "edges": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
   //   "type": 2,
   //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
   //   // "strokeStyle": "#f00"
@@ -213,7 +205,7 @@ const mock = [
 ]
 
 const getCoor = () => mock.map((item, index) => {
-  const coor = item.coor.map(([x, y]) => {
+  const coor = item.edges.map(([x, y]) => {
     return [x * (width.value / videoRef.value.videoWidth), y * (height.value / videoRef.value.videoHeight)]
   })
   return { ...{ ...item, coor }, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
@@ -232,8 +224,9 @@ const onRenderFrame = () => {
   instance.value?.setData(contour)
   instance.value?.setFocusMode(focusMode.value)
   instance.value.showCross = false
-  instance.value.hideLabel = false
+  instance.value.hideLabel = true
   instance.value.readonly = true
+  instance.value.lock = true
 
   if (contour.length) {
     dropdownRef.value?.handleOpen()
@@ -241,20 +234,27 @@ const onRenderFrame = () => {
 
 }
 
+const screenShots = reactive([])
 
 const onScreenShotHandle = () => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = videoRef.value.videoWidth;
-  canvas.height = videoRef.value.videoHeight;
+  canvas.width = width.value;
+  canvas.height = height.value;
   ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
-  screenshot.value = canvas.toDataURL('image/png')
+  const img = canvas.toDataURL('image/png')
+  screenshot.value = img
+  screenShots.push({
+    id: 'xxx',
+    img,
+    contour: getCoor()
+  })
 }
 
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241007016oqMac.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251202%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251202T170009Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=e5190ca7d3698ffc11b2c9f3a72ce72dde0694695a1e15a1ea9337d3c9c923f3'
+    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251203%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251203T145604Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=9b13f2ec04ea687713bd4c9202c98dde1548657e20416d3bb4af9957dffd571b'
 
     // const response = await fetch(testurl);
     // const blob = await response.blob();

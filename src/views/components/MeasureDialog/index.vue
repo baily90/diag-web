@@ -20,6 +20,7 @@
         </div>
       </div>
     </div>
+    {{ objectList }}
     <img :src="img" alt="">
     <template #footer>
       <el-button @click="close" :auto-insert-space="true">关闭</el-button>
@@ -31,6 +32,16 @@
 <script setup lang="ts">
 import CanvasMarkBoard from '@/lib/canvas-mark-board/index.ts'
 import RulerObject from './ruler.ts'
+
+const mock = [
+  {
+    "label": "病灶2",
+    "edges": [[1, 1], [495, 240], [495, 480], [50, 317]],
+    "type": 2,
+    // "fillStyle": "rgba(0, 0, 255, 0.1)",
+    // "strokeStyle": "#f00"
+  }
+]
 
 const visible = ref(false)
 const mark = ref(null)
@@ -46,16 +57,36 @@ const objectList = ref([])
 
 const img = ref(null)
 const onScreenShotHandle = () => {
+
   console.log(mark.value);
 
+  // const canvas = document.createElement('canvas');
+  // const ctx = canvas.getContext('2d');
 
-  // img.value = mark.value.toDataURL('image/png')
+  // ctx.drawImage(mark.value.canvas, 0, 0, mark.value.canvas.width, mark.value.canvas.height);
+  // img.value = canvas.toDataURL('image/png')
+
+
+  // ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
+  // const img = canvas.toDataURL('image/png')
+
+  // ctx.drawImage(mark.value.canvas, 0, 0, mark.value.canvas.width, mark.value.canvas.height);
+
+
+  // img.value = mark.value.canvas.toDataURL('image/png')
 }
 
-const open = (img) => {
+const getCoor = () => mock.map((item, index) => {
+  item.pointList = item.edges.map(coor => ({ x: coor[0], y: coor[1] }))
+  item.type = 'polygon'
+  item.id = '123'
+  item.color = '#ff0000'
+  return item
+})
+
+const open = ({ img }) => {
 
   const mm_per_pixel = 0.075
-  // const mm_per_pixel = 0.0354
 
   visible.value = true
   setTimeout(() => {
@@ -65,7 +96,8 @@ const open = (img) => {
       drawColor: '#ffffff',
       lineWidth: 2,
       mm_per_pixel, // 设备像素比
-      fillColor: 'rgba(245, 63, 63, .6)'
+      fillColor: 'rgba(245, 63, 63, .6)',
+      // disable: true
     })
     mark.value.register("ruler", RulerObject)
 
@@ -81,6 +113,8 @@ const open = (img) => {
 
     mark.value.setBackground(img).then(() => {
       mark.value?.setDrawType("ruler");
+      // const data = getCoor()
+      // mark.value?.setObjectData(data)
     })
 
   }, 0)
