@@ -86,7 +86,7 @@ const getCoor = () => mock.map((item, index) => {
 
 const open = ({ img }) => {
 
-  const mm_per_pixel = 0.075
+  const mm_per_pixel = 0.047292079776525
 
   visible.value = true
   setTimeout(() => {

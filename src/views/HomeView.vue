@@ -24,15 +24,16 @@
     </el-dropdown>
   </div>
   <div class="w-full px-20px">
-    <el-button @click="onZoomIn">放大</el-button>
-    <el-button @click="onZoomOut">缩小</el-button>
     <el-button @click="onScreenShotHandle">截图</el-button>
     <el-button :icon="focusMode ? View : Hide" @click="onToggleFocusMode">病灶轮廓</el-button>
   </div>
   <div class="flex items-center w-full px-20px gap-10px" v-if="screenShots?.length">
-    <img class="w-[100px] h-100px object-contain cursor-pointer" v-for="(item, index) in screenShots" :key="index"
-      :src="item.img" alt="" @click="onMeasureHandle(item)">
+    <div class="pos-relative w-200px h-200px  cursor-pointer" v-for="(item, index) in screenShots" :key="index"
+      @click="onScreenShotMeasureHandle(item)">
+      <img class="w-100% h-100% object-contain" :src="item.measureImg || item.originImg" alt="">
+    </div>
   </div>
+  {{ screenShots }}
   <div>
     <el-button @click="onToggleHandle">{{ isEnded ? '重新播放' : isPlaying ? '暂停' : '播放' }}</el-button>
   </div>
@@ -50,15 +51,16 @@
   </div>
   <img :src="screenshot" alt=""></img>
 
-  <MeasureDialog ref="measureDialogRef" />
+  <MeasureDialog ref="measureDialogRef" @save="onSaveMeasureHandle" />
 </template>
 
 <script setup lang="ts">
-import CanvasSelect from 'canvas-select'
+// import CanvasSelect from 'canvas-select'
+import CanvasSelect from './../lib/canvas-select/index'
 import MeasureDialog from './components/MeasureDialog1/index.vue'
 import { View, Hide } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-
+import dayjs from 'dayjs'
 
 const loading = ref(true)
 const url = ref(null)
@@ -142,22 +144,25 @@ const onToggleFocusMode = () => {
 }
 
 const openDropdown = () => {
-
   dropdownRef.value?.handleOpen()
 }
 
-const onMeasureHandle = (img) => {
-  measureDialogRef.value.open(img)
+const onScreenShotMeasureHandle = (screenShot) => {
+  measureDialogRef.value.open(screenShot)
 }
 
+const onSaveMeasureHandle = (val) => {
+  console.log(val, screenShots.value);
+  screenShots.value = screenShots.value.map(item => {
+    if (item.id === val.id) {
+      item = val
+    }
+    return item
+  })
 
-const onZoomIn = () => {
-  instance.value?.setScale(true)
-}
-const onZoomOut = () => {
-  instance.value?.setScale(false)
-}
+  console.log(screenShots.value);
 
+}
 
 const onSlideInput = (val: number) => {
   console.log('onSlideInput', val);
@@ -171,37 +176,30 @@ const onSlideChange = (val: number) => {
   onRenderFrame()
 }
 
-const strokeStyleArray = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff']
-const fillStyleArray = [
-  'rgba(255, 0, 0, 0.1)',
-  'rgba(0, 255, 0, 0.1)',
-  'rgba(0, 0, 255, 0.1)',
-  'rgba(255, 255, 0, 0.1)',
-  'rgba(0, 255, 255, 0.1)',
-  'rgba(255, 0, 255, 0.1)'
-]
+const strokeStyleArray = ['rgba(255, 217, 0, 1)', 'rgba(255, 34, 0, 1)', 'rgba(146, 255, 255, 1)', 'rgba(178, 255, 68, 1)', 'rgba(177, 80, 255, 1)']
+const fillStyleArray = ['rgba(255, 217, 0, 0.1)', 'rgba(255, 34, 0, 0.1)', 'rgba(146, 255, 255, 0.1)', 'rgba(178, 255, 68, 0.1)', 'rgba(177, 80, 255, 0.1)']
 const mock = [
-  // {
-  //   "label": "病灶1",
-  //   "edges": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
-  //   "type": 2,
-  //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
-  //   // "strokeStyle": "#f00"
-  // },
   {
-    "label": "病灶2",
-    "edges": [[1, 1], [495, 240], [495, 480], [50, 317]],
+    "label": "",
+    "edges": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
     "type": 2,
     // "fillStyle": "rgba(0, 0, 255, 0.1)",
     // "strokeStyle": "#f00"
   },
-  // {
-  //   "label": "病灶3",
-  //   "edges": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
-  //   "type": 2,
-  //   // "fillStyle": "rgba(0, 0, 255, 0.1)",
-  //   // "strokeStyle": "#f00"
-  // }
+  {
+    "label": "",
+    "edges": [[1, 1], [495, 440], [495, 480], [50, 317]],
+    "type": 2,
+    // "fillStyle": "rgba(0, 0, 255, 0.1)",
+    // "strokeStyle": "#f00"
+  },
+  {
+    "label": "",
+    "edges": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
+    "type": 2,
+    // "fillStyle": "rgba(0, 0, 255, 0.1)",
+    // "strokeStyle": "#f00"
+  }
 ]
 
 const getCoor = () => mock.map((item, index) => {
@@ -231,30 +229,37 @@ const onRenderFrame = () => {
   if (contour.length) {
     dropdownRef.value?.handleOpen()
   }
-
 }
 
-const screenShots = reactive([])
+const screenShots = ref([])
 
 const onScreenShotHandle = () => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = width.value;
-  canvas.height = height.value;
+  canvas.width = videoRef.value.videoWidth;
+  canvas.height = videoRef.value.videoHeight;
   ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height);
   const img = canvas.toDataURL('image/png')
-  screenshot.value = img
-  screenShots.push({
-    id: 'xxx',
-    img,
-    contour: getCoor()
+
+  screenShots.value.push({
+    id: dayjs().valueOf(),
+    originImg: img,
+    measureImg: undefined,
+    originData: mock,
+    measureData: undefined,
+    type: undefined
   })
 }
 
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = 'https://sit-scan-private.oss-cn-shanghai.aliyuncs.com/scan_doctor_app/video/20251124/202511241011020GboeN.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LTAI4G1Ej9KQVV3CzsTjEAH7%2F20251203%2Foss-cn-shanghai%2Fs3%2Faws4_request&X-Amz-Date=20251203T145604Z&X-Amz-Expires=600&X-Amz-SignedHeaders=host&X-Amz-Signature=9b13f2ec04ea687713bd4c9202c98dde1548657e20416d3bb4af9957dffd571b'
+    const testurl = "https://dev-scan-private.weicha88.com/scan_doctor_app/video/20251127/20251127134026K4b9P.mp4?security-token=CAISyAJ1q6Ft5B2yfSjIr5vaG%2FTMqKsX0Km7aG7cgzEtQbpmiaTq2zz2IHlOf3BqBeEfsPw0lGlY5%2F8ZlrxpTJtIckDFZMR26Y9W6jStZIHdvNbtWjm0Llv%2BSwapEBfe8JL4QYeQFaHwGJqEb1TDiVUAo9%2FTfimjWFqIKICAjYUdAP0cQgi%2Fa0gtZr4UXHwAzvUXLnzML%2F2gHwf3i27LdipStxF7lHl05NbUoKTeyGKH0gyrkr9K%2B9mgeMj6NJgxBvolDYfpht4RX7HazStd5yJN8KpLl6Fe8V%2FFxIrEWQIIuUnXarSMqY02fF4gPbJVALJf6fTxi%2B3rKEs4BUUdoPwkH5a2M0y3LOjIqKNPyLQgsSck25xPmmUff6FuJxiEUvIeGwY%2FHilkhVSvhPE%2BZxKCxP9U1FHZFr6oBiXnf8yvtMeSuZH6tTO2lbLiGoABFGzOYO2iTLKyQwulynuAIj58Nc32gdezFtOQqfcFhp89wWNl66fh8ymigkxOt%2FTtCVS7ls8kcyv4Rha%2FVhXfUV72ZgZVWFevjwvWJIzkWnJPUWb%2BWVE%2F6UkJ6gkC12n1N%2FJhEKf9H5Hklxa8cSEWCLRRijbz8ECP0Mz4JdLr6WkgAA%3D%3D&OSSAccessKeyId=STS.NXoPNxEt6gkPjHmg1xM5JfaA9&Expires=1764858684&Signature=6aLZ9E1iSK437nMLUd1HNZoQ6p8%3D"
+
+
+
+
+
 
     // const response = await fetch(testurl);
     // const blob = await response.blob();
