@@ -1,5 +1,5 @@
 import Shape from './Shape';
-import { Point } from '../index';
+import type { Point } from '../index';
 
 export default class Brush extends Shape {
     public type = 7;

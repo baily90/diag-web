@@ -2,7 +2,7 @@
   <div class="pos-relative w-100% h-400px bg-gray" v-loading="loading">
     <video ref="videoRef" crossorigin="anonymous" class="w-100% h-100% object-contain" :src="url"
       @loadedmetadata="onLoadedMetadata" @loadeddata="onLoadeddata" @timeupdate="onTimeupdate" @play="isPlaying = true"
-      @pause="isPlaying = false" @ended="isEnded = true" :controls="false" />
+      @pause="isPlaying = false" @ended="isEnded = true" :controls="true" />
     <canvas v-show="!isDragging" id="container"></canvas>
     <el-dropdown class="!pos-absolute pos-left-[50%] pos-top-0 z-1 -transform-translate-x-[50%]" ref="dropdownRef"
       trigger="contextmenu" :hide-on-click="false">
@@ -48,15 +48,14 @@
     <div>是否正在拖拽： {{ isDragging }}</div>
     <div>当前帧：{{ currentFrame }}</div>
     <div>总帧数：<el-input-number v-model="totalFrames" /></div>
-  </div>
+  </div> || []
   <img :src="screenshot" alt=""></img>
 
   <MeasureDialog ref="measureDialogRef" @save="onSaveMeasureHandle" />
 </template>
 
 <script setup lang="ts">
-// import CanvasSelect from 'canvas-select'
-import CanvasSelect from './../lib/canvas-select/index'
+import CanvasSelect from '@/lib/canvas-select'
 import MeasureDialog from './components/MeasureDialog1/index.vue'
 import { View, Hide } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -66,9 +65,8 @@ const loading = ref(true)
 const url = ref(null)
 const videoRef = ref<HTMLVideoElement>(null)
 
-
 const dropdownRef = ref(null)
-const focusMode = ref(false)
+const focusMode = ref(true)
 const isPlaying = ref(false)
 const isEnded = ref(false)
 const duration = ref(0)
@@ -78,7 +76,10 @@ const totalFrames = ref(280)
 const currentFrame = ref(0)
 
 const marks = reactive({
-  61: '责任病灶',
+  61: {
+    label: '责任病灶',
+    style: { marginTop: '15px', padding: '4px', borderRadius: '4px', backgroundColor: 'red', color: '#fff' }
+  },
   120: '',
   121: '',
   122: '',
@@ -180,25 +181,23 @@ const strokeStyleArray = ['rgba(255, 217, 0, 1)', 'rgba(255, 34, 0, 1)', 'rgba(1
 const fillStyleArray = ['rgba(255, 217, 0, 0.1)', 'rgba(255, 34, 0, 0.1)', 'rgba(146, 255, 255, 0.1)', 'rgba(178, 255, 68, 0.1)', 'rgba(177, 80, 255, 0.1)']
 const mock = [
   {
-    "label": "",
+    "label": {
+      "regular": "",
+      "calcification": "",
+      "echo": "高回声"
+    },
     "edges": [[398, 122], [491, 168], [303, 237], [253, 143], [331, 108], [372, 106]],
     "type": 2,
-    // "fillStyle": "rgba(0, 0, 255, 0.1)",
-    // "strokeStyle": "#f00"
   },
   {
     "label": "",
     "edges": [[1, 1], [495, 440], [495, 480], [50, 317]],
     "type": 2,
-    // "fillStyle": "rgba(0, 0, 255, 0.1)",
-    // "strokeStyle": "#f00"
   },
   {
     "label": "",
     "edges": [[471, 245], [484, 251], [484, 258], [479, 263], [474, 268], [465, 270], [460, 271], [448, 269], [440, 265], [435, 257], [434, 248], [435, 239], [440, 230], [457, 222], [474, 224], [477, 231], [474, 239]],
     "type": 2,
-    // "fillStyle": "rgba(0, 0, 255, 0.1)",
-    // "strokeStyle": "#f00"
   }
 ]
 
@@ -220,14 +219,29 @@ const onRenderFrame = () => {
   const contour = getCoor()
   instance.value?.setImage(img)
   instance.value?.setData(contour)
-  instance.value?.setFocusMode(focusMode.value)
+  if (focusMode.value) {
+    instance.value?.setFocusMode(false)
+    setTimeout(() => {
+      instance.value?.setFocusMode(true)
+      setTimeout(() => {
+        instance.value?.setFocusMode(false)
+        setTimeout(() => {
+          instance.value?.setFocusMode(true)
+        }, 1000)
+      }, 1000)
+    }, 1000)
+
+  } else {
+    instance.value?.setFocusMode(focusMode.value)
+  }
+
   instance.value.showCross = false
   instance.value.hideLabel = true
   instance.value.readonly = true
   instance.value.lock = true
 
   if (contour.length) {
-    dropdownRef.value?.handleOpen()
+    // dropdownRef.value?.handleOpen()
   }
 }
 
@@ -254,10 +268,7 @@ const onScreenShotHandle = () => {
 const loadVideo = async () => {
   try {
     loading.value = true
-    const testurl = "https://dev-scan-private.weicha88.com/scan_doctor_app/video/20251127/20251127134026K4b9P.mp4?security-token=CAISyAJ1q6Ft5B2yfSjIr5vaG%2FTMqKsX0Km7aG7cgzEtQbpmiaTq2zz2IHlOf3BqBeEfsPw0lGlY5%2F8ZlrxpTJtIckDFZMR26Y9W6jStZIHdvNbtWjm0Llv%2BSwapEBfe8JL4QYeQFaHwGJqEb1TDiVUAo9%2FTfimjWFqIKICAjYUdAP0cQgi%2Fa0gtZr4UXHwAzvUXLnzML%2F2gHwf3i27LdipStxF7lHl05NbUoKTeyGKH0gyrkr9K%2B9mgeMj6NJgxBvolDYfpht4RX7HazStd5yJN8KpLl6Fe8V%2FFxIrEWQIIuUnXarSMqY02fF4gPbJVALJf6fTxi%2B3rKEs4BUUdoPwkH5a2M0y3LOjIqKNPyLQgsSck25xPmmUff6FuJxiEUvIeGwY%2FHilkhVSvhPE%2BZxKCxP9U1FHZFr6oBiXnf8yvtMeSuZH6tTO2lbLiGoABFGzOYO2iTLKyQwulynuAIj58Nc32gdezFtOQqfcFhp89wWNl66fh8ymigkxOt%2FTtCVS7ls8kcyv4Rha%2FVhXfUV72ZgZVWFevjwvWJIzkWnJPUWb%2BWVE%2F6UkJ6gkC12n1N%2FJhEKf9H5Hklxa8cSEWCLRRijbz8ECP0Mz4JdLr6WkgAA%3D%3D&OSSAccessKeyId=STS.NXoPNxEt6gkPjHmg1xM5JfaA9&Expires=1764858684&Signature=6aLZ9E1iSK437nMLUd1HNZoQ6p8%3D"
-
-
-
+    const testurl = "https://dev-scan-private.weicha88.com/scan_doctor_app/video/20251127/20251127134026K4b9P.mp4?security-token=CAISyAJ1q6Ft5B2yfSjIr5vvHuiCnIpE0IO6eGHZijQnfcR93oSS1zz2IHlOf3BqBeEfsPw0lGlY5%2F8ZlrxpTJtIckDFZMR26Y9W6jStZIHdvNbtZ2SQAFr%2BSwapEBfe8JL4QYeQFaHwGJqEb1TDiVUAo9%2FTfimjWFqIKICAjYUdAP0cQgi%2Fa0gtZr4UXHwAzvUXLnzML%2F2gHwf3i27LdipStxF7lHl05NbUoKTeyGKH0gyrkr9K%2B9mgeMj6NJgxBvolDYfpht4RX7HazStd5yJN8KpLl6Fe8V%2FFxIrEWQIIuUnXarSMqY02fF4gPbJVALJf6fTxi%2B3rKEs4BUUdoPwkH5a2M0y3LOjIqKNPCP%2B4n0Ok25xPmmUff6FuJxiEUvIeGwY%2FHilkhVSvhPE%2BZxKCxP9U1FHZFr6oBiXnf8yvtMeSuapdUGK2lbLiGoABlKBfVWTYgJdLZifNmqr31%2BwAVt9cy9qxH3KRNn6TdyVPyOVTz8sOI6sJ3IYNFue48Qak15nrof6Z2SObkociu7aanlG4JBJdRqIjr%2FdHCUTzLwNsoPdU9XQCFG0bO%2FcB2ifMEOChIImOzHUwa1%2FpcJRYy%2BxyTldAoBLhzZVgESIgAA%3D%3D&OSSAccessKeyId=STS.NXZUR6qUegAQzGhn4rqKQ1A95&Expires=1765164721&Signature=Ui8E5PSMx%2BwFVEKD0xsWQ7uJqnQ%3D"
 
 
 

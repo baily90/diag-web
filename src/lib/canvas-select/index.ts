@@ -695,6 +695,9 @@ export default class CanvasSelect extends EventBus {
                 } else if ([Shape.Brush, Shape.Eraser].includes(this.activeShape.type)) {
                     this.activeShape.creating = false;
                     this.emit('add', this.activeShape);
+                }else if ([Shape.Line].includes(this.activeShape.type) && this.activeShape.coor?.length === 2) {
+                    this.activeShape.creating = false;
+                    this.emit('add', this.activeShape);
                 }
                 this.update();
             }

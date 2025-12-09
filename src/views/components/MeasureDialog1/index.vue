@@ -18,15 +18,16 @@
     {{ dataset }}
 
     <img :src="img" alt="">
-    <template #footer>
-      <el-button @click="close" :auto-insert-space="true">关闭</el-button>
-      <el-button @click="onSaveHandle" :auto-insert-space="true">保存测量</el-button>
-    </template>
+      <template #footer>
+        <el-button @click="close" :auto-insert-space="true">关闭</el-button>
+        <el-button @click="onSaveHandle" :auto-insert-space="true">保存测量</el-button>
+      </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import CanvasSelect from 'canvas-select'
+// import CanvasSelect from 'canvas-select'
+import CanvasSelect from '@/lib/canvas-select'
 import { View, Hide } from '@element-plus/icons-vue'
 
 const emits = defineEmits(['save'])
@@ -34,7 +35,7 @@ const emits = defineEmits(['save'])
 const strokeStyleArray = ['rgba(255, 217, 0, 1)', 'rgba(255, 34, 0, 1)', 'rgba(146, 255, 255, 1)', 'rgba(178, 255, 68, 1)', 'rgba(177, 80, 255, 1)']
 const fillStyleArray = ['rgba(255, 217, 0, 0.1)', 'rgba(255, 34, 0, 0.1)', 'rgba(146, 255, 255, 0.1)', 'rgba(178, 255, 68, 0.1)', 'rgba(177, 80, 255, 0.1)']
 
-const focusMode = ref(false)
+const focusMode = ref(true)
 const instance = ref(null)
 
 const dataset = ref([])
@@ -42,9 +43,24 @@ const dataset = ref([])
 const onToggleFocusMode = () => {
   focusMode.value = !focusMode.value
   if (focusMode.value) {
-    instance.value?.setFocusMode(true)
+    const data = dataset.value?.map(item => {
+      if (item.type === 2) {
+        item.hide = true
+      }
+      return item
+    })
+    instance.value?.setData(data)
+
+    // instance.value?.setFocusMode(true)
   } else {
-    instance.value?.setFocusMode(false)
+    const data = dataset.value?.map(item => {
+      if (item.type === 2) {
+        item.hide = false
+      }
+      return item
+    })
+    instance.value?.setData(data)
+    // instance.value?.setFocusMode(false)
   }
 }
 
@@ -55,14 +71,12 @@ const close = () => {
   screenShotInstance.value = null
   type.value = 0
   visible.value = false
-  // emit('rulerDialogClose')
 }
 
 const img = ref(null)
 
-
 const onSaveHandle = () => {
-  const coor = dataset.value?.filter(item => item.type === 4)
+  const coor = dataset.value?.filter(item => item.type === 4)?.map(item => ({ ...item, active: false }))
   screenShotInstance.value.setData(coor)
 
   setTimeout(() => {
@@ -90,7 +104,7 @@ const getCoor = () => {
 }
 
 const getOirginCoors = () => detail.value?.originData?.map((item, index) => {
-  return { ...item, coor: item.edges, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
+  return { ...item, coor: item.edges, hide: focusMode.value, fillStyle: fillStyleArray[index % fillStyleArray.length], strokeStyle: strokeStyleArray[index % strokeStyleArray.length] }
 }) || []
 
 const getMeasureCoors = () => detail.value?.measureData || []
@@ -126,6 +140,7 @@ const open = (res) => {
   visible.value = true
   detail.value = res
   type.value = res.type
+  focusMode.value = true
   setTimeout(() => {
     screenShotInstance.value = new CanvasSelect('#ruler-dialog-box-screenshot')
     screenShotInstance.value?.setImage(res.originImg)
@@ -134,7 +149,6 @@ const open = (res) => {
     instance.value?.setImage(res.originImg)
     const contour = getCoor()
     instance.value?.setData(contour)
-    instance.value?.setFocusMode(focusMode.value)
     instance.value.hideLabel = false
     instance.value.read = true
 
